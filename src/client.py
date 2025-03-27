@@ -107,6 +107,32 @@ class client :
 
         #  Write your code here
 
+
+        if len(user) > 255:
+            print("Error: User name is too long")
+            return client.RC.USER_ERROR
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, int(client._port))
+        # print('connecting to {} port {}'.format(*server_address))
+        sock.connect(server_address)
+
+        message = "UNREGISTER" + "\0"
+        sock.sendall(message.encode())
+
+        message = user + "\0"
+        sock.sendall(message.encode())
+
+        status = int(readInt32(sock))
+
+
+        if status == 0:
+            print("c> UNREGISTER OK")
+        elif status == 1:
+            print("c> USER DOES NOT EXIST")
+        elif status == 2:
+            print("c> UNREGISTER FAIL")
+        sock.close()
+
         return client.RC.ERROR
 
 

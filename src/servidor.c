@@ -53,6 +53,17 @@ int tratar_petición ( void * sc )
         }
 
     }
+    if (strcmp(op, "UNREGISTER") == 0) {
+        readLine(sc_local, user, MAX_LINE);
+        printf("Usuario: %s\n", user);
+        if (exist_user(user) == 0) {
+            delete_user(user);
+            status = 0;
+        }
+        else{
+            status = 1;
+        }
+    }
 
     else{
         status = 2;

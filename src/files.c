@@ -118,6 +118,15 @@ int create_user(char *dir_name) {
     return 0; // Éxito
 }
 
+int delete_user(char *dir_name) {
+    char full_path[512]; // Buffer para almacenar la ruta completa
+    snprintf(full_path, sizeof(full_path), "users/%s", dir_name); // Construye la ruta completa
+    if (rmdir(full_path) != 0) {
+        perror("Error al eliminar el directorio");
+        return -1; // Retorna -1 en caso de error
+    }
+    return 0; // Éxito
+}
 int write_to_file(void* data, size_t size, size_t count, FILE* file) {
     if (fwrite(data, size, count, file) != count) {
         fclose(file);

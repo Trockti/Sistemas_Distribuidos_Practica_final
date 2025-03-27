@@ -106,5 +106,6 @@ int exist(int key);
 // Funciones para gestión de usuarios
 int exist_user(char *dir_name);
 int create_user(char *dir_name);
+int delete_user(char *dir_name);
 
 #endif
