@@ -39,23 +39,22 @@ int tratar_petición ( void * sc )
     char user[MAX_LINE];
 
     readLine(sc_local, op, MAX_LINE);
-    printf("Operación: %s\n", op);
+    readLine(sc_local, user, MAX_LINE);
+    printf("s > OPERATION %s FROM %s\n", op, user);
     
     if (strcmp(op, "REGISTER") == 0) {
-        readLine(sc_local, user, MAX_LINE);
-        printf("Usuario: %s\n", user);
+
         if (exist_user(user) != 0) {
             create_user(user);
             status = 0;
+            printf("s > REGISTERED %s\n", user);
         }
         else{
             status = 1;
         }
 
     }
-    if (strcmp(op, "UNREGISTER") == 0) {
-        readLine(sc_local, user, MAX_LINE);
-        printf("Usuario: %s\n", user);
+    else if (strcmp(op, "UNREGISTER") == 0) {
         if (exist_user(user) == 0) {
             delete_user(user);
             status = 0;
@@ -106,9 +105,15 @@ int main(int argc, char *argv[])
     }
 
     // Verificar argumentos de línea de comandos
-    if (argc != 2) {
-        printf("Usage: server <port>\n");
+    if (argc != 3 || strcmp(argv[1], "-p") != 0) {
+        printf("Usage: server -p <port>\n");
         exit(0);
+    }
+
+    int port = atoi(argv[2]);
+    if (port <= 0) {
+        printf("Error: El puerto debe ser un número válido.\n");
+        exit(1);
     }
 
     // Configuración de la dirección del servidor
@@ -120,18 +125,20 @@ int main(int argc, char *argv[])
     bzero((char *)&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    printf("Puerto: %d\n", atoi(argv[1]));
-    server_addr.sin_port = htons(atoi(argv[1]));
+    printf("Puerto: %d\n", port);
+    server_addr.sin_port = htons(port);
     bind(sd, (const struct sockaddr *)&server_addr,
     sizeof(server_addr));
+    
     listen(sd, SOMAXCONN);
     size = sizeof(client_addr);
-    printf("Servidor en marcha\n");
+    printf("s > init server %s:%d\n",
+        inet_ntoa(server_addr.sin_addr), ntohs(server_addr.sin_port));
 
     // Bucle principal del servidor
     while (1)
     {
-        printf("esperando conexion\n");
+        printf("s>\n");
         
         // Aceptar nueva conexión
         sc = accept(sd, (struct sockaddr *)&client_addr,

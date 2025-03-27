@@ -84,7 +84,7 @@ class client :
 
         status = int(readInt32(sock))
 
-
+        print("status: ", status)
         if status == 0:
             print("c> REGISTER OK")
         elif status == 1:
