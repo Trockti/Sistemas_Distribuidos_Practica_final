@@ -13,42 +13,7 @@
 
 
 
-int remove_file(char *filepath){
-    if (remove(filepath) != 0) { // elimina el archivo
-        perror("Error al eliminar el archivo");
-        return -1; // Retorna -1 en caso de error
-    }
-    return 0;
-}
 
-
-int destroy_server() {
-    const char *dir_name = "tuplas"; // Nombre del directorio
-
-    // Intenta abrir el directorio para eliminar todos sus archivos
-    DIR *direct = opendir(dir_name);
-    if (direct == NULL) {   // si el directorio no existe
-        printf("Creando directorio 'tuplas'\n");
-        if (mkdir(dir_name, 0777) != 0) { // crea el directorio
-            perror("Error al crear el directorio");
-            return -1; // Retorna -1 en caso de error
-        }
-    }
-    else{
-        struct dirent *dir;
-        while ((dir = readdir(direct)) != NULL) {   // para cada entrada del directorio
-            if(strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0) {
-                char filepath[512]; 
-                snprintf(filepath, sizeof(filepath), "%s/%s", dir_name, dir->d_name);
-                remove_file(filepath);
-            }
-        }
-    }
-
-    printf("Archivos .dat eliminados exitosamente\n");
-    closedir(direct);
-    return 0;
-}
 
 
 int get_filename(int key, char *filename){
@@ -66,9 +31,9 @@ int check_len_string(char* value1){
     return 0;
 }
 
-int exist_user(char *dir_name) {
+int exist_user(char *user) {
     char full_path[512]; // Buffer para almacenar la ruta completa
-    snprintf(full_path, sizeof(full_path), "users/%s", dir_name); // Construye la ruta completa
+    snprintf(full_path, sizeof(full_path), "users/%s", user); // Construye la ruta completa
 
     DIR *direct = opendir(full_path);
     if (direct == NULL) {
@@ -78,8 +43,8 @@ int exist_user(char *dir_name) {
     return 0; // Éxito
 }
 
-int exist_dir(char *dir_name){
-    DIR *direct = opendir(dir_name);
+int exist_dir(char *user){
+    DIR *direct = opendir(user);
     if (direct == NULL) {
         return -1; // Retorna -1 en caso de error
     }
@@ -108,9 +73,9 @@ int create_file(char * filename, char * mode){
     return 0; // Exito
 }
 
-int create_user(char *dir_name) {
+int create_user(char *user) {
     char full_path[512]; // Buffer para almacenar la ruta completa
-    snprintf(full_path, sizeof(full_path), "users/%s", dir_name); // Construye la ruta completa
+    snprintf(full_path, sizeof(full_path), "users/%s", user); // Construye la ruta completa
     if (mkdir(full_path, 0777) != 0) {
         perror("Error al crear el directorio");
         return -1; // Retorna -1 en caso de error
@@ -118,15 +83,59 @@ int create_user(char *dir_name) {
     return 0; // Éxito
 }
 
-int delete_user(char *dir_name) {
+int connect_user(char *user, char* ip, char *port) {
+    char full_path[512]; 
+    snprintf(full_path, sizeof(full_path), "connect/%s.dat", user); 
+
+    FILE *file = fopen(full_path, "wb"); 
+    if (file == NULL) {
+        perror("Error al crear el archivo en el directorio");
+        return -1; // Retorna -1 en caso de error
+    }
+    if (fwrite(ip, sizeof(char), strlen(ip) + 1, file) != strlen(ip) + 1) {
+        fclose(file);
+        return -1; // Retorna -1 en caso de error de escritura
+    }
+    if (fwrite(port, sizeof(char), strlen(port) + 1, file) != strlen(port) + 1) {
+        fclose(file);
+        return -1; // Retorna -1 en caso de error de escritura
+    }
+    fclose(file);
+    return 0; // Éxito
+}
+
+int disconnect_user(char *user) {
     char full_path[512]; // Buffer para almacenar la ruta completa
-    snprintf(full_path, sizeof(full_path), "users/%s", dir_name); // Construye la ruta completa
+    snprintf(full_path, sizeof(full_path), "users/%s.dat", user); // Construye la ruta completa
+    if (remove(full_path) != 0) {
+        perror("Error al crear el directorio");
+        return -1; // Retorna -1 en caso de error
+    }
+    return 0; // Éxito
+}
+
+int delete_user(char *user) {
+    char full_path[512]; // Buffer para almacenar la ruta completa
+    snprintf(full_path, sizeof(full_path), "users/%s", user); // Construye la ruta completa
     if (rmdir(full_path) != 0) {
         perror("Error al eliminar el directorio");
         return -1; // Retorna -1 en caso de error
     }
     return 0; // Éxito
 }
+
+int user_connected(char *user){
+    char full_path[512]; // Buffer para almacenar la ruta completa
+    snprintf(full_path, sizeof(full_path), "connect/%s.dat", user); // Construye la ruta completa
+
+    DIR *direct = opendir(full_path);
+    if (direct == NULL) {
+        return -1; // Retorna -1 en caso de error
+    }
+    closedir(direct);
+    return 0; // Éxito
+}
+
 int write_to_file(void* data, size_t size, size_t count, FILE* file) {
     if (fwrite(data, size, count, file) != count) {
         fclose(file);
@@ -268,32 +277,6 @@ int get_value_server(int key, char *value1, int *N_value2, double *V_value2, str
     return 0;
 }
 
-
-int modify_value_server(int key, char *value1, int N_value2, double *V_value2, struct Coord value3){
-    char filename[MAX_FILENAME_LENGTH];
-    
-    get_filename(key, filename);
-
-    if (check_Nvalue2(N_value2) != 0) {
-        return -1; // Retorna -1 si N_value>32 o N_value<1
-    }
-
-    // Retorna -1 si no existe el archivo para dicha key
-    if (exist_file(filename) != 0) {
-        perror("MODIFYVALUE Error, el archivo no existe");
-        return -1; 
-    }
-
-    // Elimina el archivo y su contenido
-    remove_file(filename);
-
-    //  Crea el archivo binario nuevamente
-    if (set_value_server(key, value1, N_value2, V_value2, value3) != 0) {
-        perror("Error al modificar el archivo binario nuevamente");
-        return -1; // Retorna -1 en caso de error
-    }
-    return 0;
-}
 
 int exist_server(int key){
     char filename[MAX_FILENAME_LENGTH];

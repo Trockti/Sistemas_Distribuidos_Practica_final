@@ -4,6 +4,7 @@ import argparse
 
 import socket
 import sys
+import threading
 
 import struct
 
@@ -24,6 +25,8 @@ def readString(sock):
             break
         a += msg.decode()
     return(a)
+
+    
 
 class client :
 
@@ -144,8 +147,55 @@ class client :
     @staticmethod
 
     def  connect(user) :
+        if len(user) > 255:
+            print("Error: User name is too long")
+            return client.RC.USER_ERROR
 
-        #  Write your code here
+        # Crear socket para escuchar conexiones entrantes de otros clientes
+        user_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        user_socket.bind(('', 0))  # Usar puerto aleatorio
+        port = user_socket.getsockname()[1]
+
+        # Crear un hilo para manejar el socket de servicio
+        def service_thread():
+            user_socket.listen(1)  # Escuchar una conexión entrante
+            while True:
+                conn, addr = user_socket.accept()
+                print(f"Conexión recibida de {addr}")
+                data = conn.recv(1024)
+                if data:
+                    print(f"Datos recibidos: {data.decode()}")
+                conn.close()
+
+        thread = threading.Thread(target=service_thread, daemon=True)
+        thread.start()
+
+        # Conectar al servidor
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, int(client._port))
+        sock.connect(server_address)
+
+        message = "CONNECT" + "\0"
+        sock.sendall(message.encode())
+
+        message = user + "\0"
+        sock.sendall(message.encode())
+
+        message = str(port) + "\0"
+        sock.sendall(message.encode())
+
+        status = int(readInt32(sock))
+
+
+        if status == 0:
+            print("c > CONNECT OK")
+        elif status == 1:
+            print("c > CONNECT FAIL , USER DOES NOT EXIST")
+        elif status == 2:
+            print("c > USER ALREADY CONNECTED")
+        elif status == 3:
+            print("c > CONNECT FAIL")
+        sock.close()
 
         return client.RC.ERROR
 
