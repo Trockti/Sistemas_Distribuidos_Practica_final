@@ -164,6 +164,88 @@ int create_content(char *path, char *user) {
     return 0; // Éxito
 }
 
+// Función recursiva auxiliar para eliminar directorios y su contenido
+int delete_directory(const char *path) {
+    DIR *dir;
+    struct dirent *entry;
+    char full_path[512];
+
+    // Abre el directorio
+    dir = opendir(path);
+    if (dir == NULL) {
+        perror("Error al abrir el directorio");
+        return -1;
+    }
+
+    // Recorre el contenido del directorio
+    while ((entry = readdir(dir)) != NULL) {
+        // Omite "." y ".."
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Construye la ruta completa
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+        // Obtiene información del archivo
+        struct stat statbuf;
+        if (stat(full_path, &statbuf) == -1) {
+            perror("Error al obtener información del archivo");
+            closedir(dir);
+            return -1;
+        }
+
+        // Si es un directorio, elimina recursivamente
+        if (S_ISDIR(statbuf.st_mode)) {
+            if (delete_directory(full_path) == -1) {
+                closedir(dir);
+                return -1;
+            }
+        } else {
+            // Es un archivo, elimínalo
+            if (remove(full_path) == -1) {
+                perror("Error al eliminar archivo");
+                closedir(dir);
+                return -1;
+            }
+        }
+    }
+
+    closedir(dir);
+
+    // Finalmente, elimina el directorio
+    if (rmdir(path) == -1) {
+        perror("Error al eliminar directorio");
+        return -1;
+    }
+
+    return 0;
+}
+
+int delete_content(char *path, char *user) {
+    char full_path[512]; // Buffer para almacenar la ruta completa
+    snprintf(full_path, sizeof(full_path), "users/%s/%s", user, path); // Construye la ruta completa
+    
+    // Determina si el path es un archivo o directorio
+    struct stat statbuf;
+    if (stat(full_path, &statbuf) == -1) {
+        perror("Error al obtener información del archivo/directorio");
+        return -1;
+    }
+    
+    // Si es un directorio, usa la función recursiva
+    if (S_ISDIR(statbuf.st_mode)) {
+        return delete_directory(full_path);
+    } else {
+        // Es un archivo, usa remove como antes
+        if (remove(full_path) != 0) {
+            perror("Error al eliminar el archivo");
+            return -1;
+        }
+        return 0; // Éxito
+    }
+}
+
 int disconnect_user(char *user) {
     char full_path[512]; // Buffer para almacenar la ruta completa
     snprintf(full_path, sizeof(full_path), "connect/%s.dat", user); // Construye la ruta completa

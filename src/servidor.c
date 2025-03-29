@@ -138,6 +138,31 @@ int tratar_petición(void *arg)
         }
     }
 
+    else if (strcmp(op, "DELETE") == 0){
+        readLine(sc_local, path, MAX_LINE);
+        if (exist_user(user) == 0){
+            if (user_connected(user) != 0){
+                status = 2;
+            }
+            else{
+                if (exist_content(path, user) == 0){
+                    if (delete_content(path, user) == 0){
+                        status = 0;
+                    }
+                    else{
+                        status = 4;
+                    }
+                }
+                else{
+                    status = 3;
+                }
+            }
+        }
+        else{
+            status = 1;
+        }
+    }
+
     else{
         status = -1;
     }

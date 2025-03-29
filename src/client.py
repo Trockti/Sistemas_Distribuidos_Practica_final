@@ -292,7 +292,9 @@ class client :
     def  publish(fileName,  description) :
 
         #  Write your code here
-
+        if len(fileName) > 255:
+            print("Error: file name is too long")
+            return client.RC.USER_ERROR
         if len(description) > 255:
             print("Error: description is too long")
             return client.RC.USER_ERROR
@@ -345,8 +347,46 @@ class client :
 
         #  Write your code here
 
-        return client.RC.ERROR
+        if len(fileName) > 255:
+            print("Error: description is too long")
+            return client.RC.USER_ERROR
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, int(client._port))
+        # print('connecting to {} port {}'.format(*server_address))
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > “DELETE” FAIL")
+            return client.RC.ERROR
 
+
+
+        message = "DELETE" + "\0"
+        sock.sendall(message.encode())
+
+        message = user_connected + "\0"
+        sock.sendall(message.encode())
+
+        message = fileName + "\0"
+        sock.sendall(message.encode())
+
+
+        status = int(readInt32(sock))
+        if status == 0:
+            print("c> “DELETE” OK OK")
+        elif status == 1:
+            print("c> “DELETE” FAIL , USER DOES NOT EXIST")
+        elif status == 2:
+            print("c> “DELETE” FAIL , USER NOT CONNECTED")
+        elif status == 3:
+            print("c> “DELETE” FAIL , CONTENT NOT PUBLISHED")
+        elif status == 4:
+            print("c> “DELETE” FAIL")
+        sock.close()
+
+
+
+        return client.RC.ERROR
 
 
     @staticmethod

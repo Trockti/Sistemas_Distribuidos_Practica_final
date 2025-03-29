@@ -112,4 +112,5 @@ int disconnect_user(char *dir_name);
 int user_connected(char *user);
 int exist_content(char *path, char *user);
 int create_content(char *path, char *user);
+int delete_content(char *path, char *user);
 #endif
