@@ -82,7 +82,11 @@ class client :
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
         # print('connecting to {} port {}'.format(*server_address))
-        sock.connect(server_address)
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > PUBLISH FAIL")
+            return client.RC.ERROR
 
         message = "REGISTER" + "\0"
         sock.sendall(message.encode())
@@ -121,7 +125,11 @@ class client :
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
         # print('connecting to {} port {}'.format(*server_address))
-        sock.connect(server_address)
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > PUBLISH FAIL")
+            return client.RC.ERROR
 
         message = "UNREGISTER" + "\0"
         sock.sendall(message.encode())
@@ -189,7 +197,11 @@ class client :
         # Conectar al servidor
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
-        sock.connect(server_address)
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > PUBLISH FAIL")
+            return client.RC.ERROR
 
         message = "CONNECT" + "\0"
         sock.sendall(message.encode())
@@ -245,7 +257,11 @@ class client :
         # Conectar al servidor
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
-        sock.connect(server_address)
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > PUBLISH FAIL")
+            return client.RC.ERROR
 
         message = "DISCONNECT" + "\0"
         sock.sendall(message.encode())
@@ -276,6 +292,48 @@ class client :
     def  publish(fileName,  description) :
 
         #  Write your code here
+
+        if len(description) > 255:
+            print("Error: description is too long")
+            return client.RC.USER_ERROR
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, int(client._port))
+        # print('connecting to {} port {}'.format(*server_address))
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > PUBLISH FAIL")
+            return client.RC.ERROR
+
+
+
+        message = "PUBLISH" + "\0"
+        sock.sendall(message.encode())
+
+        message = user_connected + "\0"
+        sock.sendall(message.encode())
+
+        message = fileName + "\0"
+        sock.sendall(message.encode())
+
+        message = description + "\0"
+        sock.sendall(message.encode())
+
+        status = int(readInt32(sock))
+
+        if status == 0:
+            print("c> PUBLISH OK OK")
+        elif status == 1:
+            print("c> PUBLISH FAIL , USER DOES NOT EXIST")
+        elif status == 2:
+            print("c> PUBLISH FAIL , USER NOT CONNECTED")
+        elif status == 3:
+            print("c> PUBLISH FAIL , CONTENT ALREADY PUBLISHED")
+        elif status == 4:
+            print("c> PUBLISH FAIL")
+        sock.close()
+
+
 
         return client.RC.ERROR
 

@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "../inc/files.h"
 
 #define MAX_FILENAME_LENGTH 255
@@ -99,6 +100,65 @@ int connect_user(char *user, char* ip, char *port) {
     if (fwrite(port, sizeof(char), strlen(port) + 1, file) != strlen(port) + 1) {
         fclose(file);
         return -1; // Retorna -1 en caso de error de escritura
+    }
+    fclose(file);
+    return 0; // Éxito
+}
+
+int exist_content(char *path, char *user) {
+    char full_path[512]; // Buffer para almacenar la ruta completa
+    snprintf(full_path, sizeof(full_path), "users/%s/%s", user, path); // Construye la ruta completa
+
+    FILE *file = fopen(full_path, "rb");
+    if (file == NULL) {
+        return -1; // Retorna -1 en caso de error
+    }
+    fclose(file);
+    return 0; // Éxito
+}
+
+int create_content(char *path, char *user) {
+    char full_path[512];
+    char temp_path[512];
+    char *p = NULL;
+    size_t len;
+
+    // Construye el path completo con el usuario
+    snprintf(full_path, sizeof(full_path), "users/%s/%s", user, path);
+
+    // Copia el path completo a un buffer temporal
+    snprintf(temp_path, sizeof(temp_path), "%s", full_path);
+    len = strlen(temp_path);
+
+    // Elimina el nombre del archivo del path
+    for (p = temp_path + len - 1; p > temp_path && *p != '/'; p--);
+    if (p > temp_path) {
+        *p = '\0'; // Termina la cadena en el último '/'
+    }
+
+    // Crea los directorios necesarios
+    for (p = temp_path + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            if (mkdir(temp_path, 0777) != 0 && errno != EEXIST) {
+                perror("Error al crear directorio");
+                return -1;
+            }
+            *p = '/';
+        }
+    }
+
+    // Crea el último directorio si no existe
+    if (mkdir(temp_path, 0777) != 0 && errno != EEXIST) {
+        perror("Error al crear directorio");
+        return -1;
+    }
+
+    // Crea el archivo al final del path
+    FILE *file = fopen(full_path, "wb");
+    if (file == NULL) {
+        perror("Error al crear el archivo");
+        return -1;
     }
     fclose(file);
     return 0; // Éxito

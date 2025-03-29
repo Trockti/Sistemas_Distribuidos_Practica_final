@@ -110,5 +110,6 @@ int delete_user(char *dir_name);
 int connect_user(char *user, char* ip, char *port);
 int disconnect_user(char *dir_name);
 int user_connected(char *user);
-
+int exist_content(char *path, char *user);
+int create_content(char *path, char *user);
 #endif

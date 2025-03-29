@@ -47,6 +47,8 @@ int tratar_petición(void *arg)
     char op[MAX_LINE];
     char user[MAX_LINE];
     char port[MAX_LINE];
+    char path[MAX_LINE];
+    char description[MAX_LINE];
 
     readLine(sc_local, op, MAX_LINE);
     readLine(sc_local, user, MAX_LINE);
@@ -110,9 +112,36 @@ int tratar_petición(void *arg)
         }
     }
 
-    else{
-        status = 2;
+    else if (strcmp(op, "PUBLISH") == 0){
+        readLine(sc_local, path, MAX_LINE);
+        readLine(sc_local, description, MAX_LINE);
+        if (exist_user(user) == 0){
+            if (user_connected(user) != 0){
+                status = 2;
+            }
+            else{
+                if (exist_content(user, path) != 0){
+                    if (create_content(path, user) == 0){
+                        status = 0;
+                    }
+                    else{
+                        status = 4;
+                    }
+                }
+                else{
+                    status = 3;
+                }
+            }
+        }
+        else{
+            status = 1;
+        }
     }
+
+    else{
+        status = -1;
+    }
+    
 
     // Enviar el resultado de la operación al cliente
     status = htonl(status);
