@@ -106,9 +106,9 @@ int connect_user(char *user, char* ip, char *port) {
 
 int disconnect_user(char *user) {
     char full_path[512]; // Buffer para almacenar la ruta completa
-    snprintf(full_path, sizeof(full_path), "users/%s.dat", user); // Construye la ruta completa
+    snprintf(full_path, sizeof(full_path), "connect/%s.dat", user); // Construye la ruta completa
     if (remove(full_path) != 0) {
-        perror("Error al crear el directorio");
+        perror("Error al eliminar el directorio");
         return -1; // Retorna -1 en caso de error
     }
     return 0; // Éxito
@@ -127,12 +127,11 @@ int delete_user(char *user) {
 int user_connected(char *user){
     char full_path[512]; // Buffer para almacenar la ruta completa
     snprintf(full_path, sizeof(full_path), "connect/%s.dat", user); // Construye la ruta completa
-
-    DIR *direct = opendir(full_path);
-    if (direct == NULL) {
+    FILE *file = fopen(full_path, "rb");
+    if (file == NULL) {
         return -1; // Retorna -1 en caso de error
     }
-    closedir(direct);
+    fclose(file);
     return 0; // Éxito
 }
 

@@ -91,6 +91,24 @@ int tratar_petición(void *arg)
             status = 1;
         }
     }
+    else if (strcmp(op, "DISCONNECT") == 0){
+        if (exist_user(user) == 0){
+            if (user_connected(user) != 0){
+                status = 2;
+            }
+            else{
+                if (disconnect_user(user) == 0){
+                    status = 0;
+                }
+                else{
+                    status = 3;
+                }
+            }
+        }
+        else{
+            status = 1;
+        }
+    }
 
     else{
         status = 2;

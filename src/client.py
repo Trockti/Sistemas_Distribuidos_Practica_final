@@ -8,6 +8,11 @@ import threading
 
 import struct
 
+stop_event = threading.Event()
+service_thread_instance = None
+user_socket = None
+user_connected = ''
+
 def readInt32(sock):
     """
     Reads a 32-bit integer from the socket.
@@ -87,7 +92,6 @@ class client :
 
         status = int(readInt32(sock))
 
-        print("status: ", status)
         if status == 0:
             print("c> REGISTER OK")
         elif status == 1:
@@ -146,10 +150,16 @@ class client :
 
     @staticmethod
 
-    def  connect(user) :
+    def connect(user):
+        global user_connected
         if len(user) > 255:
             print("Error: User name is too long")
             return client.RC.USER_ERROR
+            
+        if user_connected and user_connected != user:
+            client.disconnect(user_connected)  # Disconnect the previous user if different
+        
+        user_connected = user
 
         # Crear socket para escuchar conexiones entrantes de otros clientes
         user_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -159,13 +169,19 @@ class client :
         # Crear un hilo para manejar el socket de servicio
         def service_thread():
             user_socket.listen(1)  # Escuchar una conexión entrante
-            while True:
-                conn, addr = user_socket.accept()
-                print(f"Conexión recibida de {addr}")
-                data = conn.recv(1024)
-                if data:
-                    print(f"Datos recibidos: {data.decode()}")
-                conn.close()
+            while not stop_event.is_set():
+                try:
+                    conn, addr = user_socket.accept()
+                    print(f"Conexión recibida de {addr}")
+                    data = conn.recv(1024)
+                    if data:
+                        print(f"Datos recibidos: {data.decode()}")
+                    conn.close()
+                except socket.timeout:
+                    continue  # Manejar timeout sin bloquear
+                except Exception as e:
+                    print(f"Error en el hilo de servicio: {e}")
+                    break
 
         thread = threading.Thread(target=service_thread, daemon=True)
         thread.start()
@@ -210,6 +226,46 @@ class client :
     def  disconnect(user) :
 
         #  Write your code here
+        global user_socket, service_thread_instance, stop_event
+        
+        if len(user) > 255:
+            print("Error: User name is too long")
+            return client.RC.USER_ERROR
+        # Señalizar al hilo que debe detenerse
+        stop_event.set()
+        if service_thread_instance:
+            service_thread_instance.join()  # Esperar a que el hilo termine
+            service_thread_instance = None
+
+        # Cerrar el socket de escucha
+        if user_socket:
+            user_socket.close()
+            user_socket = None
+
+        # Conectar al servidor
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, int(client._port))
+        sock.connect(server_address)
+
+        message = "DISCONNECT" + "\0"
+        sock.sendall(message.encode())
+
+        message = user + "\0"
+        sock.sendall(message.encode())
+
+
+        status = int(readInt32(sock))
+
+
+        if status == 0:
+            print("c > DISCONNECT OK")
+        elif status == 1:
+            print("c > DISCONNECT FAIL , USER DOES NOT EXIST")
+        elif status == 2:
+            print("c > DISCONNECT FAIL , USER NOT CONNECTED")
+        elif status == 3:
+            print("c > DISCONNECT FAIL")
+        sock.close()
 
         return client.RC.ERROR
 
@@ -408,7 +464,7 @@ class client :
                     elif(line[0]=="QUIT") :
 
                         if (len(line) == 1) :
-
+                            client.disconnect(user_connected)  # Disconnect the user before quitting
                             break
 
                         else :
