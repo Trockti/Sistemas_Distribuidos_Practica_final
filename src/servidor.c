@@ -49,6 +49,7 @@ int tratar_petición(void *arg)
     int32_t port;
     char path[MAX_LINE];
     char description[MAX_LINE];
+    int32_t count;
 
     readLine(sc_local, op, MAX_LINE);
     readLine(sc_local, user, MAX_LINE);
@@ -75,7 +76,7 @@ int tratar_petición(void *arg)
         }
     }
     else if(strcmp(op, "CONNECT") == 0){
-        recvMessage(sc_local, port, sizeof(int32_t));
+        recvMessage(sc_local, (char *)&port, sizeof(int32_t));
         port = ntohl(port);
         if (exist_user(user) == 0){
             if (user_connected(user) == 0){
@@ -164,19 +165,16 @@ int tratar_petición(void *arg)
         }
     }
     else if (strcmp(op, "LIST_USERS") == 0){
-        readLine(sc_local, path, MAX_LINE);
         if (exist_user(user) == 0){
+            
             if (user_connected(user) != 0){
                 status = 2;
             }
             else{
-                int32_t count = count_files("users");
+                printf("s > LIST_USERS %s\n", user);
+                count = count_files("connect");
                 if (count > 0){
-                    count = htonl(count);
-                    if (sendMessage(sc_local, (char *)&count, sizeof(int)) < 0) {
-                        perror("Error enviando mensaje de respuesta");
-                        return -2;
-                    }
+
                     status = 0;
                 }
                 else{
@@ -199,6 +197,15 @@ int tratar_petición(void *arg)
     if (sendMessage(sc_local, (char *)&status, sizeof(int32_t)) < 0) {
         perror("Error enviando mensaje de respuesta");
         return -2;
+    }
+    if (status == 0){
+        if (strcmp(op, "LIST_USERS") == 0){
+            count = htonl(count);
+            if (sendMessage(sc_local, (char *)&count, sizeof(int32_t)) < 0) {
+                perror("Error enviando mensaje de respuesta");
+                return -2;
+            }
+        }
     }
 
     close(sc_local);

@@ -107,7 +107,7 @@ int exist(int key);
 int exist_user(char *dir_name);
 int create_user(char *dir_name);
 int delete_user(char *dir_name);
-int connect_user(char *user, char* ip, char *port);
+int connect_user(char *user, char* ip, int port);
 int disconnect_user(char *dir_name);
 int user_connected(char *user);
 int exist_content(char *path, char *user);

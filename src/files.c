@@ -84,7 +84,7 @@ int create_user(char *user) {
     return 0; // Éxito
 }
 
-int connect_user(char *user, char* ip, char *port) {
+int connect_user(char *user, char* ip, int port) {
     char full_path[512]; 
     snprintf(full_path, sizeof(full_path), "connect/%s.dat", user); 
 
@@ -97,7 +97,7 @@ int connect_user(char *user, char* ip, char *port) {
         fclose(file);
         return -1; // Retorna -1 en caso de error de escritura
     }
-    if (fwrite(port, sizeof(char), strlen(port) + 1, file) != strlen(port) + 1) {
+    if (fwrite(&port, sizeof(int), 1, file) != 1) {
         fclose(file);
         return -1; // Retorna -1 en caso de error de escritura
     }
@@ -279,7 +279,7 @@ int count_files(const char *path) {
 
         // Si es un directorio, llama recursivamente
         if (S_ISDIR(statbuf.st_mode)) {
-            int subdir_count = count_files_recursive(full_path);
+            int subdir_count = count_files(full_path);
             if (subdir_count == -1) {
                 closedir(dir);
                 return -1; // Propaga el error

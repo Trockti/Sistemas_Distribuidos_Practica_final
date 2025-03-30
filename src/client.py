@@ -210,7 +210,7 @@ class client :
         sock.sendall(message.encode())
 
         message = struct.pack('!I', port)
-        sock.sendall(message.encode())
+        sock.sendall(message)
 
         status = int(readInt32(sock))
 
@@ -414,7 +414,7 @@ class client :
         if status == 0:
             print("c > LIST_USERS OK")
             # Read the number of users
-            num_users = readInt32(sock)
+            num_users = int(readInt32(sock))
             print("Number of users:", num_users)
         elif status == 1:
             print("c > LIST_USERS FAIL , USER DOES NOT EXIST")
