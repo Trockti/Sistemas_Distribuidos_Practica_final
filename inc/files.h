@@ -113,4 +113,5 @@ int user_connected(char *user);
 int exist_content(char *path, char *user);
 int create_content(char *path, char *user);
 int delete_content(char *path, char *user);
+int count_files(const char *path);
 #endif

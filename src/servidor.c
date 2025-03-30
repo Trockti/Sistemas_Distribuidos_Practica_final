@@ -46,7 +46,7 @@ int tratar_petición(void *arg)
     // Variables para el socket
     char op[MAX_LINE];
     char user[MAX_LINE];
-    char port[MAX_LINE];
+    int32_t port;
     char path[MAX_LINE];
     char description[MAX_LINE];
 
@@ -75,7 +75,8 @@ int tratar_petición(void *arg)
         }
     }
     else if(strcmp(op, "CONNECT") == 0){
-        readLine(sc_local, port, MAX_LINE);
+        recvMessage(sc_local, port, sizeof(int32_t));
+        port = ntohl(port);
         if (exist_user(user) == 0){
             if (user_connected(user) == 0){
                 status = 2;
@@ -152,6 +153,31 @@ int tratar_petición(void *arg)
                     else{
                         status = 4;
                     }
+                }
+                else{
+                    status = 3;
+                }
+            }
+        }
+        else{
+            status = 1;
+        }
+    }
+    else if (strcmp(op, "LIST_USERS") == 0){
+        readLine(sc_local, path, MAX_LINE);
+        if (exist_user(user) == 0){
+            if (user_connected(user) != 0){
+                status = 2;
+            }
+            else{
+                int32_t count = count_files("users");
+                if (count > 0){
+                    count = htonl(count);
+                    if (sendMessage(sc_local, (char *)&count, sizeof(int)) < 0) {
+                        perror("Error enviando mensaje de respuesta");
+                        return -2;
+                    }
+                    status = 0;
                 }
                 else{
                     status = 3;

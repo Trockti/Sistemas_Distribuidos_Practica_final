@@ -20,7 +20,7 @@ def readInt32(sock):
     data = sock.recv(4)  # Read 4 bytes from the socket
     if len(data) < 4:
         raise ValueError("Incomplete data received for int32")
-    return struct.unpack('!i', data)[0]  # Unpack as a big-endian signed int
+    return struct.unpack('!I', data)[0]  # Unpack as a big-endian int
 
 def readString(sock):
     a = ''
@@ -209,7 +209,7 @@ class client :
         message = user + "\0"
         sock.sendall(message.encode())
 
-        message = str(port) + "\0"
+        message = struct.pack('!I', port)
         sock.sendall(message.encode())
 
         status = int(readInt32(sock))
@@ -373,15 +373,15 @@ class client :
 
         status = int(readInt32(sock))
         if status == 0:
-            print("c> “DELETE” OK OK")
+            print("c> DELETE OK")
         elif status == 1:
-            print("c> “DELETE” FAIL , USER DOES NOT EXIST")
+            print("c> DELETE FAIL , USER DOES NOT EXIST")
         elif status == 2:
-            print("c> “DELETE” FAIL , USER NOT CONNECTED")
+            print("c> DELETE FAIL , USER NOT CONNECTED")
         elif status == 3:
-            print("c> “DELETE” FAIL , CONTENT NOT PUBLISHED")
+            print("c> DELETE FAIL , CONTENT NOT PUBLISHED")
         elif status == 4:
-            print("c> “DELETE” FAIL")
+            print("c> DELETE FAIL")
         sock.close()
 
 
@@ -394,6 +394,36 @@ class client :
     def  listusers() :
 
         #  Write your code here
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, int(client._port))
+        # print('connecting to {} port {}'.format(*server_address))
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > LIST_USERS FAIL")
+            return client.RC.ERROR
+        
+        message = "LIST_USERS" + "\0"
+        sock.sendall(message.encode())
+
+        message = user_connected + "\0"
+        sock.sendall(message.encode())
+
+        status = int(readInt32(sock))
+        if status == 0:
+            print("c > LIST_USERS OK")
+            # Read the number of users
+            num_users = readInt32(sock)
+            print("Number of users:", num_users)
+        elif status == 1:
+            print("c > LIST_USERS FAIL , USER DOES NOT EXIST")
+        elif status == 2:
+            print("c > LIST_USERS FAIL , USER NOT CONNECTED")
+        elif status == 3:
+            print("c > LIST_USERS FAIL")
+        sock.close()
+
 
         return client.RC.ERROR
 
