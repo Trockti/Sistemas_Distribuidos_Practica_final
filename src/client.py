@@ -415,7 +415,13 @@ class client :
             print("c > LIST_USERS OK")
             # Read the number of users
             num_users = int(readInt32(sock))
-            print("Number of users:", num_users)
+            for i in range(num_users):
+                # Read the user name
+                user_name = readString(sock)
+                ip = readString(sock)
+                port = int(readInt32(sock))
+                print(f"{user_name} {ip} {port}")
+
         elif status == 1:
             print("c > LIST_USERS FAIL , USER DOES NOT EXIST")
         elif status == 2:

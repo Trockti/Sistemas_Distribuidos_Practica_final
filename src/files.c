@@ -305,6 +305,39 @@ int disconnect_user(char *user) {
     return 0; // Éxito
 }
 
+int get_user_information(char *user, char *ip, int *port) {
+    char full_path[512]; 
+    FILE *file;
+    
+    // Construct the path to the user's connection file
+    snprintf(full_path, sizeof(full_path), "connect/%s", user);
+    printf("Path: %s\n", full_path);
+    
+    // Open the file for reading
+    file = fopen(full_path, "rb");
+    if (file == NULL) {
+        perror("Error al abrir el archivo de conexión del usuario");
+        return -1; // Return error
+    }
+    
+    // Read the IP (stored as a null-terminated string)
+    char c;
+    int i = 0;
+    while (fread(&c, sizeof(char), 1, file) == 1 && c != '\0' && i < 255) {
+        ip[i++] = c;
+    }
+    ip[i] = '\0'; // Ensure null-termination
+    
+    // Read the port (stored as an integer)
+    if (fread(port, sizeof(int), 1, file) != 1) {
+        perror("Error al leer el puerto del archivo");
+        fclose(file);
+        return -1;
+    }
+    
+    fclose(file);
+    return 0; // Success
+}
 int delete_user(char *user) {
     char full_path[512]; // Buffer para almacenar la ruta completa
     snprintf(full_path, sizeof(full_path), "users/%s", user); // Construye la ruta completa

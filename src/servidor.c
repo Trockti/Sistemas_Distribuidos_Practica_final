@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <dirent.h>  // Para trabajar con directorios
 #include "../inc/lines.h"
 #include "../inc/files.h"
 
@@ -205,6 +206,46 @@ int tratar_petición(void *arg)
                 perror("Error enviando mensaje de respuesta");
                 return -2;
             }
+            
+            // Buscar archivos en la carpeta connect
+            DIR *dir;
+            struct dirent *entry;
+            char ip[MAX_LINE];
+            int port;
+            
+            // Abrir el directorio connect
+            dir = opendir("connect");
+            if (dir == NULL) {
+                perror("Error al abrir directorio connect");
+                return -2;
+            }
+            
+            // Leer cada entrada del directorio
+            while ((entry = readdir(dir)) != NULL) {
+                // Ignorar . y ..
+                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                    continue;
+                if (get_user_information( entry->d_name, ip, &port) == 0) {
+                    // Enviar la IP y el puerto al cliente
+                    if (sendMessage(sc_local, ip, sizeof(ip)) < 0) {
+                        perror("Error enviando IP");
+                        closedir(dir);
+                        return -2;
+                    }
+                    port = htonl(port);
+                    if (sendMessage(sc_local, (char *)&port, sizeof(int32_t)) < 0) {
+                        perror("Error enviando puerto");
+                        closedir(dir);
+                        return -2;
+                    }
+                } else {
+                    perror("Error al obtener información del usuario");
+                    closedir(dir);
+                }
+            }
+            
+            // Cerrar el directorio
+            closedir(dir);
         }
     }
 
