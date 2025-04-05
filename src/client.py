@@ -3,7 +3,7 @@ from enum import Enum
 import argparse
 
 import socket
-import sys
+import os
 import threading
 
 import struct
@@ -418,9 +418,10 @@ class client :
             for i in range(num_users):
                 # Read the user name
                 user_name = readString(sock)
+                user, extension = os.path.splitext(user_name)
                 ip = readString(sock)
                 port = int(readInt32(sock))
-                print(f"{user_name} {ip} {port}")
+                print(f"{user} {ip} {port}")
 
         elif status == 1:
             print("c > LIST_USERS FAIL , USER DOES NOT EXIST")
@@ -440,6 +441,45 @@ class client :
     def  listcontent(user) :
 
         #  Write your code here
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, int(client._port))
+        # print('connecting to {} port {}'.format(*server_address))
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > LIST_CONTENT OK")
+            return client.RC.ERROR
+        
+        message = "LIST_CONTENT" + "\0"
+        sock.sendall(message.encode())
+
+        message = user_connected + "\0"
+        sock.sendall(message.encode())
+
+        message = user + "\0"
+        sock.sendall(message.encode())
+
+        status = int(readInt32(sock))
+        if status == 0:
+            print("c > LIST_CONTENT OK")
+            # Read the number of users
+            num_files = int(readInt32(sock))
+            for i in range(num_files):
+                # Read the user name
+                file = readString(sock)
+                file, extension = os.path.splitext(file)
+                print(file)
+
+        elif status == 1:
+            print("c> LIST_CONTENT FAIL , USER DOES NOT EXIST")
+        elif status == 2:
+            print("c> LIST_CONTENT FAIL , USER NOT CONNECTED")
+        elif status == 3:
+            print("c> LIST_CONTENT FAIL,  REMOTE USER DOES NOT EXIST")
+        elif status == 4:
+            print("c> LIST_CONTENT FAIL")
+        sock.close()
 
         return client.RC.ERROR
 

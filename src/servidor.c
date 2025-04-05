@@ -51,6 +51,7 @@ int tratar_petición(void *arg)
     char path[MAX_LINE];
     char description[MAX_LINE];
     int32_t count;
+    char user2[MAX_LINE];
 
     readLine(sc_local, op, MAX_LINE);
     readLine(sc_local, user, MAX_LINE);
@@ -172,7 +173,6 @@ int tratar_petición(void *arg)
                 status = 2;
             }
             else{
-                printf("s > LIST_USERS %s\n", user);
                 count = count_files("connect");
                 if (count > 0){
 
@@ -188,8 +188,32 @@ int tratar_petición(void *arg)
         }
     }
 
-    else{
-        status = -1;
+    else if (strcmp(op, "LIST_CONTENT") == 0){
+        readLine(sc_local, user2, MAX_LINE);
+        if (exist_user(user) == 0){
+            
+            if (user_connected(user) != 0){
+                status = 2;
+            }
+            else{
+                if (exist_user(user2) == 0){
+                    count = count_files("users");
+                    if (count > 0){
+
+                        status = 0;
+                    }
+                    else{
+                        status = 4;
+                    }
+                }
+                else{
+                    status = 3;
+                }
+            }
+        }
+        else{
+            status = 1;
+        }
     }
     
 
@@ -212,6 +236,7 @@ int tratar_petición(void *arg)
             struct dirent *entry;
             char ip[MAX_LINE];
             int port;
+
             
             // Abrir el directorio connect
             dir = opendir("connect");
@@ -227,7 +252,12 @@ int tratar_petición(void *arg)
                     continue;
                 if (get_user_information( entry->d_name, ip, &port) == 0) {
                     // Enviar la IP y el puerto al cliente
-                    if (sendMessage(sc_local, ip, sizeof(ip)) < 0) {
+                    if (sendMessage(sc_local, entry->d_name, strlen(entry->d_name) + 1) < 0) {
+                        perror("Error enviando IP");
+                        closedir(dir);
+                        return -2;
+                    }
+                    if (sendMessage(sc_local, ip, strlen(ip) + 1) < 0) {
                         perror("Error enviando IP");
                         closedir(dir);
                         return -2;
@@ -239,6 +269,46 @@ int tratar_petición(void *arg)
                         return -2;
                     }
                 } else {
+                    perror("Error al obtener información del usuario");
+                    closedir(dir);
+                }
+            }
+            
+            // Cerrar el directorio
+            closedir(dir);
+        }
+        if (strcmp(op, "LIST_CONTENT") == 0){
+            count = htonl(count);
+            if (sendMessage(sc_local, (char *)&count, sizeof(int32_t)) < 0) {
+                perror("Error enviando mensaje de respuesta");
+                return -2;
+            }
+            
+            // Buscar archivos en la carpeta connect
+            DIR *dir;
+            struct dirent *entry;
+
+            
+            // Abrir el directorio connect
+            dir = opendir("users");
+            if (dir == NULL) {
+                perror("Error al abrir directorio connect");
+                return -2;
+            }
+            
+            // Leer cada entrada del directorio
+            while ((entry = readdir(dir)) != NULL) {
+                // Ignorar . y ..
+                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                    continue;
+                
+                if (sendMessage(sc_local,entry->d_name, strlen(entry->d_name) + 1) < 0) {
+                        perror("Error enviando archivo");
+                        closedir(dir);
+                        return -2;
+                }
+
+                else {
                     perror("Error al obtener información del usuario");
                     closedir(dir);
                 }

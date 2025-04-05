@@ -295,6 +295,55 @@ int count_files(const char *path) {
     return file_count; // Retorna el número total de archivos
 }
 
+int count_directories(const char *path) {
+    DIR *dir;
+    struct dirent *entry;
+    struct stat statbuf;
+    char full_path[512];
+    int file_count = 0;
+
+    // Abre el directorio
+    dir = opendir(path);
+    if (dir == NULL) {
+        perror("Error al abrir el directorio");
+        return -1; // Retorna -1 en caso de error
+    }
+
+    // Recorre el contenido del directorio
+    while ((entry = readdir(dir)) != NULL) {
+        // Omite las entradas "." y ".."
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Construye la ruta completa
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+        // Obtiene información del archivo
+        if (stat(full_path, &statbuf) == -1) {
+            perror("Error al obtener información del archivo");
+            closedir(dir);
+            return -1;
+        }
+
+        // Si es un directorio, llama recursivamente
+        if (S_ISDIR(statbuf.st_mode)) {
+            int subdir_count = count_files(full_path);
+            if (subdir_count == -1) {
+                closedir(dir);
+                return -1; // Propaga el error
+            }
+            file_count += subdir_count;
+        } else if (S_ISREG(statbuf.st_mode)) {
+            // Si es un archivo regular, incrementa el contador
+            file_count++;
+        }
+    }
+
+    closedir(dir);
+    return file_count; // Retorna el número total de archivos
+}
+
 int disconnect_user(char *user) {
     char full_path[512]; // Buffer para almacenar la ruta completa
     snprintf(full_path, sizeof(full_path), "connect/%s.dat", user); // Construye la ruta completa
