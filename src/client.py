@@ -12,6 +12,7 @@ stop_event = threading.Event()
 service_thread_instance = None
 user_socket = None
 user_connected = ''
+list_users = {}
 
 def readInt32(sock):
     """
@@ -179,12 +180,47 @@ class client :
             user_socket.listen(1)  # Escuchar una conexión entrante
             while not stop_event.is_set():
                 try:
-                    conn, addr = user_socket.accept()
-                    print(f"Conexión recibida de {addr}")
-                    data = conn.recv(1024)
-                    if data:
-                        print(f"Datos recibidos: {data.decode()}")
-                    conn.close()
+                    sock, addr = user_socket.accept()
+                    message = readString(sock)
+                    print(message)
+                    if message != 'GET_FILE':
+                        print("ups")
+                        message = struct.pack('!I', 1)
+                        sock.sendall(message)
+                    else:
+                        path = readString(sock)     
+                        full_path = os.path.join(os.getcwd(), path)
+                        if not os.path.exists(full_path):
+                            message = struct.pack('!I', 1)
+                            sock.sendall(message)
+                            print(f"Datos recibidos: {full_path.decode()}")
+                        else:
+                           
+                            message = struct.pack('!I', 0)
+                            sock.sendall(message)
+                            size = os.path.getsize(full_path)
+                            message = struct.pack('!I', size)
+                            sock.sendall(message)
+                            try: 
+                                # Open the file in binary mode
+                                with open(full_path, 'rb') as file:                            
+                                    # Read the first byte
+                                    byte = file.read(1)
+                                    print(byte.decode())
+                                    
+                                    # Continue reading until end of file
+                                    while byte:
+                                        # Send the current byte
+                                        sock.sendall(byte)
+                                        # Read the next byte
+                                        byte = file.read(1)
+                                        
+                                
+                            except Exception as e:
+                                print(f"Error while sending file: {e}")
+                                sock.close()
+
+                    sock.close()
                 except socket.timeout:
                     continue  # Manejar timeout sin bloquear
                 except Exception as e:
@@ -421,6 +457,7 @@ class client :
                 user, extension = os.path.splitext(user_name)
                 ip = readString(sock)
                 port = int(readInt32(sock))
+                list_users[user] = [ip, port]
                 print(f"{user} {ip} {port}")
 
         elif status == 1:
@@ -462,7 +499,7 @@ class client :
 
         status = int(readInt32(sock))
         if status == 0:
-            print("c > LIST_CONTENT OK")
+            print("c > LIST_CONTENT FAIL")
             # Read the number of users
             num_files = int(readInt32(sock))
             for i in range(num_files):
@@ -490,6 +527,44 @@ class client :
     def  getfile(user,  remote_FileName,  local_FileName) :
 
         #  Write your code here
+
+        client.listusers()
+        ip = list_users[user][0]
+        port = list_users[user][1]
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (ip, int(port))
+        # print('connecting to {} port {}'.format(*server_address))
+        try:
+            sock.connect(server_address)
+        except socket.error as e:
+            print("c > GET_FILE FAIL")
+            return client.RC.ERROR
+        message = "GET_FILE" + "\0"
+        sock.sendall(message.encode())
+        message = remote_FileName + "\0"
+        sock.sendall(message.encode())       
+        status = int(readInt32(sock))
+        if status == 0:
+            print("c > GET_FILE OK")
+            size = int(readInt32(sock))
+            output_dir = os.path.dirname(local_FileName)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            with open(local_FileName, 'wb') as file:
+                for i in range(size):
+                    received_byte = sock.recv(1)
+                    
+                    
+                    # Write the byte to the file
+                    file.write(received_byte)
+
+        elif status == 1:
+            print("c> GET_FILE FAIL , FILE NOT EXIST")
+        elif status == 2:
+            print("c> GET_FILE FAIL")
+        sock.close()
+
 
         return client.RC.ERROR
 
