@@ -333,6 +333,22 @@ int main(int argc, char *argv[])
     int val;                    // Valor para opciones del socket
     int err;                    // Control de errores
 
+    // Verificar si existe el directorio users
+    if (exist_dir("users") != 0) {
+        // Crear el directorio users si no existe
+        if (mkdir("users", 0777) != 0) {
+            perror("Error al crear el directorio users");
+            return -1;
+        }
+    }
+    // Verificar si existe el directorio connect
+    if (exist_dir("connect") != 0) {
+        // Crear el directorio connect si no existe
+        if (mkdir("connect", 0777) != 0) {
+            perror("Error al crear el directorio connect");
+            return -1;
+        }
+    }
     // Crear socket TCP
     sd =  socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sd < 0) {

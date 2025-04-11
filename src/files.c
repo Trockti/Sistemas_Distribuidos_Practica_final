@@ -75,15 +75,7 @@ int create_file(char * filename, char * mode){
 }
 
 int create_user(char *user) {
-    char users_dir[] = "users";
-    // Verificar si existe el directorio users
-    if (exist_dir(users_dir) != 0) {
-        // Crear el directorio users si no existe
-        if (mkdir(users_dir, 0777) != 0) {
-            perror("Error al crear el directorio users");
-            return -1;
-        }
-    }
+
     
     char full_path[512]; // Buffer para almacenar la ruta completa
     snprintf(full_path, sizeof(full_path), "users/%s", user); // Construye la ruta completa
