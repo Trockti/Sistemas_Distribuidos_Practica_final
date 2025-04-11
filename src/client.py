@@ -205,15 +205,10 @@ class client :
                                 # Open the file in binary mode
                                 with open(full_path, 'rb') as file:                            
                                     # Read the first byte
-                                    byte = file.read(1)
-                                    print(byte.decode())
-                                    
-                                    # Continue reading until end of file
-                                    while byte:
-                                        # Send the current byte
-                                        sock.sendall(byte)
-                                        # Read the next byte
-                                        byte = file.read(1)
+                                    file = file.read(size)
+                                    print(file.decode())
+                                    # Send the file content
+                                    sock.sendall(file)
                                         
                                 
                             except Exception as e:
@@ -551,13 +546,13 @@ class client :
             output_dir = os.path.dirname(local_FileName)
             if output_dir and not os.path.exists(output_dir):
                 os.makedirs(output_dir)
-            with open(local_FileName, 'wb') as file:
-                for i in range(size):
-                    received_byte = sock.recv(1)
+            with open(local_FileName, 'wb') as f:
+                
+                file = sock.recv(size)
                     
                     
-                    # Write the byte to the file
-                    file.write(received_byte)
+                # Write the byte to the file
+                f.write(file)
 
         elif status == 1:
             print("c> GET_FILE FAIL , FILE NOT EXIST")
