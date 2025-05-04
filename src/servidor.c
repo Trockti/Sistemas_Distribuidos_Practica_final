@@ -46,6 +46,7 @@ int tratar_petición(void *arg)
     
     // Variables para el socket
     char op[MAX_LINE];
+    char datetime[MAX_LINE]; // <-- Añadido para la fecha/hora
     char user[MAX_LINE];
     int32_t port;
     char path[MAX_LINE];
@@ -54,6 +55,12 @@ int tratar_petición(void *arg)
     char user2[MAX_LINE];
 
     readLine(sc_local, op, MAX_LINE);
+
+    // Leer la cadena de fecha/hora tras el código de operación
+    readLine(sc_local, datetime, MAX_LINE);
+    // Si quieres, puedes imprimirla:
+    // printf("Fecha/hora recibida: %s\n", datetime);
+
     readLine(sc_local, user, MAX_LINE);
     printf("s > OPERATION %s FROM %s\n", op, user);
     

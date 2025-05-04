@@ -7,6 +7,7 @@ import os
 import threading
 
 import struct
+from zeep import Client as ZeepClient
 
 stop_event = threading.Event()
 service_thread_instance = None
@@ -32,11 +33,16 @@ def readString(sock):
         a += msg.decode()
     return(a)
 
-    
+# Añadir función para obtener la fecha/hora del servicio SOAP
+def get_datetime_string():
+    try:
+        soap_client = ZeepClient('http://127.0.0.1:8000/?wsdl')
+        return soap_client.service.get_datetime()
+    except Exception as e:
+        print(f"Error obteniendo fecha/hora del servicio SOAP: {e}")
+        return ""
 
 class client :
-
-
 
     # ******************** TYPES *********************
 
@@ -52,37 +58,21 @@ class client :
 
         USER_ERROR = 2
 
-
-
     # ****************** ATTRIBUTES ******************
 
     _server = None
 
     _port = -1
 
-
-
     # ******************** METHODS *******************
 
-
-
-
-
     @staticmethod
-
-    def  register(user) :
-
-        #  Write your code here
-
-        
-
-
+    def register(user) :
         if len(user) > 255:
             print("Error: User name is too long")
             return client.RC.USER_ERROR
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
-        # print('connecting to {} port {}'.format(*server_address))
         try:
             sock.connect(server_address)
         except socket.error as e:
@@ -91,6 +81,10 @@ class client :
 
         message = "REGISTER" + "\0"
         sock.sendall(message.encode())
+
+        # Enviar la fecha/hora tras el código de operación
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
 
         message = user + "\0"
         sock.sendall(message.encode())
@@ -105,27 +99,15 @@ class client :
             print("c> REGISTER FAIL")
         sock.close()
 
-
-
         return client.RC.ERROR
 
-
-
-   
-
     @staticmethod
-
-    def  unregister(user) :
-
-        #  Write your code here
-
-
+    def unregister(user) :
         if len(user) > 255:
             print("Error: User name is too long")
             return client.RC.USER_ERROR
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
-        # print('connecting to {} port {}'.format(*server_address))
         try:
             sock.connect(server_address)
         except socket.error as e:
@@ -135,11 +117,13 @@ class client :
         message = "UNREGISTER" + "\0"
         sock.sendall(message.encode())
 
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
+
         message = user + "\0"
         sock.sendall(message.encode())
 
         status = int(readInt32(sock))
-
 
         if status == 0:
             print("c> UNREGISTER OK")
@@ -151,14 +135,7 @@ class client :
 
         return client.RC.ERROR
 
-
-
-
-
-    
-
     @staticmethod
-
     def connect(user):
         global user_connected
         if len(user) > 255:
@@ -237,6 +214,9 @@ class client :
         message = "CONNECT" + "\0"
         sock.sendall(message.encode())
 
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
+
         message = user + "\0"
         sock.sendall(message.encode())
 
@@ -244,7 +224,6 @@ class client :
         sock.sendall(message)
 
         status = int(readInt32(sock))
-
 
         if status == 0:
             print("c > CONNECT OK")
@@ -258,17 +237,8 @@ class client :
 
         return client.RC.ERROR
 
-
-
-
-
-    
-
     @staticmethod
-
-    def  disconnect(user) :
-
-        #  Write your code here
+    def disconnect(user) :
         global user_socket, service_thread_instance, stop_event
         
         if len(user) > 255:
@@ -297,12 +267,13 @@ class client :
         message = "DISCONNECT" + "\0"
         sock.sendall(message.encode())
 
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
+
         message = user + "\0"
         sock.sendall(message.encode())
 
-
         status = int(readInt32(sock))
-
 
         if status == 0:
             print("c > DISCONNECT OK")
@@ -316,13 +287,8 @@ class client :
 
         return client.RC.ERROR
 
-
-
     @staticmethod
-
-    def  publish(fileName,  description) :
-
-        #  Write your code here
+    def publish(fileName,  description) :
         if len(fileName) > 255:
             print("Error: file name is too long")
             return client.RC.USER_ERROR
@@ -331,17 +297,17 @@ class client :
             return client.RC.USER_ERROR
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
-        # print('connecting to {} port {}'.format(*server_address))
         try:
             sock.connect(server_address)
         except socket.error as e:
             print("c > PUBLISH FAIL")
             return client.RC.ERROR
 
-
-
         message = "PUBLISH" + "\0"
         sock.sendall(message.encode())
+
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
 
         message = user_connected + "\0"
         sock.sendall(message.encode())
@@ -366,41 +332,32 @@ class client :
             print("c> PUBLISH FAIL")
         sock.close()
 
-
-
         return client.RC.ERROR
 
-
-
     @staticmethod
-
-    def  delete(fileName) :
-
-        #  Write your code here
-
+    def delete(fileName) :
         if len(fileName) > 255:
             print("Error: description is too long")
             return client.RC.USER_ERROR
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
-        # print('connecting to {} port {}'.format(*server_address))
         try:
             sock.connect(server_address)
         except socket.error as e:
             print("c > “DELETE” FAIL")
             return client.RC.ERROR
 
-
-
         message = "DELETE" + "\0"
         sock.sendall(message.encode())
+
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
 
         message = user_connected + "\0"
         sock.sendall(message.encode())
 
         message = fileName + "\0"
         sock.sendall(message.encode())
-
 
         status = int(readInt32(sock))
         if status == 0:
@@ -415,20 +372,12 @@ class client :
             print("c> DELETE FAIL")
         sock.close()
 
-
-
         return client.RC.ERROR
 
-
     @staticmethod
-
-    def  listusers() :
-
-        #  Write your code here
-
+    def listusers() :
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
-        # print('connecting to {} port {}'.format(*server_address))
         try:
             sock.connect(server_address)
         except socket.error as e:
@@ -437,6 +386,9 @@ class client :
         
         message = "LIST_USERS" + "\0"
         sock.sendall(message.encode())
+
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
 
         message = user_connected + "\0"
         sock.sendall(message.encode())
@@ -463,20 +415,12 @@ class client :
             print("c > LIST_USERS FAIL")
         sock.close()
 
-
         return client.RC.ERROR
 
-
-
     @staticmethod
-
-    def  listcontent(user) :
-
-        #  Write your code here
-
+    def listcontent(user) :
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
-        # print('connecting to {} port {}'.format(*server_address))
         try:
             sock.connect(server_address)
         except socket.error as e:
@@ -485,6 +429,9 @@ class client :
         
         message = "LIST_CONTENT" + "\0"
         sock.sendall(message.encode())
+
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
 
         message = user_connected + "\0"
         sock.sendall(message.encode())
@@ -515,21 +462,14 @@ class client :
 
         return client.RC.ERROR
 
-
-
     @staticmethod
-
-    def  getfile(user,  remote_FileName,  local_FileName) :
-
-        #  Write your code here
-
+    def getfile(user,  remote_FileName,  local_FileName) :
         client.listusers()
         ip = list_users[user][0]
         port = list_users[user][1]
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (ip, int(port))
-        # print('connecting to {} port {}'.format(*server_address))
         try:
             sock.connect(server_address)
         except socket.error as e:
@@ -537,6 +477,10 @@ class client :
             return client.RC.ERROR
         message = "GET_FILE" + "\0"
         sock.sendall(message.encode())
+
+        datetime_str = get_datetime_string() + "\0"
+        sock.sendall(datetime_str.encode())
+
         message = remote_FileName + "\0"
         sock.sendall(message.encode())       
         status = int(readInt32(sock))
@@ -547,10 +491,7 @@ class client :
             if output_dir and not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             with open(local_FileName, 'wb') as f:
-                
                 file = sock.recv(size)
-                    
-                    
                 # Write the byte to the file
                 f.write(file)
 
@@ -560,10 +501,7 @@ class client :
             print("c> GET_FILE FAIL")
         sock.close()
 
-
         return client.RC.ERROR
-
-
 
     # *
 
@@ -572,10 +510,7 @@ class client :
     # * @brief Command interpreter for the client. It calls the protocol functions.
 
     @staticmethod
-
     def shell():
-
-
 
         while (True) :
 
@@ -587,11 +522,7 @@ class client :
 
                 if (len(line) > 0):
 
-
-
                     line[0] = line[0].upper()
-
-
 
                     if (line[0]=="REGISTER") :
 
@@ -603,8 +534,6 @@ class client :
 
                             print("Syntax error. Usage: REGISTER <userName>")
 
-
-
                     elif(line[0]=="UNREGISTER") :
 
                         if (len(line) == 2) :
@@ -615,8 +544,6 @@ class client :
 
                             print("Syntax error. Usage: UNREGISTER <userName>")
 
-
-
                     elif(line[0]=="CONNECT") :
 
                         if (len(line) == 2) :
@@ -626,9 +553,7 @@ class client :
                         else :
 
                             print("Syntax error. Usage: CONNECT <userName>")
-
                     
-
                     elif(line[0]=="PUBLISH") :
 
                         if (len(line) >= 3) :
@@ -643,8 +568,6 @@ class client :
 
                             print("Syntax error. Usage: PUBLISH <fileName> <description>")
 
-
-
                     elif(line[0]=="DELETE") :
 
                         if (len(line) == 2) :
@@ -654,8 +577,6 @@ class client :
                         else :
 
                             print("Syntax error. Usage: DELETE <fileName>")
-
-
 
                     elif(line[0]=="LIST_USERS") :
 
@@ -667,8 +588,6 @@ class client :
 
                             print("Syntax error. Use: LIST_USERS")
 
-
-
                     elif(line[0]=="LIST_CONTENT") :
 
                         if (len(line) == 2) :
@@ -678,8 +597,6 @@ class client :
                         else :
 
                             print("Syntax error. Usage: LIST_CONTENT <userName>")
-
-
 
                     elif(line[0]=="DISCONNECT") :
 
@@ -691,8 +608,6 @@ class client :
 
                             print("Syntax error. Usage: DISCONNECT <userName>")
 
-
-
                     elif(line[0]=="GET_FILE") :
 
                         if (len(line) == 4) :
@@ -702,8 +617,6 @@ class client :
                         else :
 
                             print("Syntax error. Usage: GET_FILE <userName> <remote_fileName> <local_fileName>")
-
-
 
                     elif(line[0]=="QUIT") :
 
@@ -723,30 +636,20 @@ class client :
 
                 print("Exception: " + str(e))
 
-
-
     # *
 
     # * @brief Prints program usage
 
     @staticmethod
-
     def usage() :
-
         print("Usage: python3 client.py -s <server> -p <port>")
-
-
-
-
 
     # *
 
     # * @brief Parses program execution arguments
 
     @staticmethod
-
-    def  parseArguments(argv) :
-
+    def parseArguments(argv) :
         parser = argparse.ArgumentParser()
 
         parser.add_argument('-s', type=str, required=True, help='Server IP')
@@ -755,60 +658,29 @@ class client :
 
         args = parser.parse_args()
 
-
-
         if (args.s is None):
-
             parser.error("Usage: python3 client.py -s <server> -p <port>")
-
             return False
 
-
-
         if ((args.p < 1024) or (args.p > 65535)):
-
             parser.error("Error: Port must be in the range 1024 <= port <= 65535");
-
             return False;
-
         
-
         client._server = args.s
-
         client._port = args.p
 
-
-
         return True
-
-
-
-
 
     # ******************** MAIN *********************
 
     @staticmethod
-
     def main(argv) :
-
         if (not client.parseArguments(argv)) :
-
             client.usage()
-
             return
 
-
-
-        #  Write code here
-
         client.shell()
-
         print("+++ FINISHED +++")
 
-    
-
-
-
 if __name__=="__main__":
-
     client.main([])
