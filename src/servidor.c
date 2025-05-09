@@ -261,7 +261,7 @@ int tratar_petición(void *arg)
 		clnt_perror (clnt, "call failed");
 	}
 
-	// clnt_destroy (clnt);
+	clnt_destroy (clnt);
 
     // Enviar el resultado de la operación al cliente
     status = htonl(status);
