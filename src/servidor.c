@@ -8,9 +8,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/stat.h>
 #include <dirent.h>  // Para trabajar con directorios
 #include "../inc/lines.h"
 #include "../inc/files.h"
+#include "../fecha_hora.h"
 
 // Constantes
 #define MAX_LINE 256
@@ -42,7 +44,7 @@ int tratar_petición(void *arg)
     pthread_cond_signal(&sync_cond);
     pthread_mutex_unlock(&sync_mutex);
 
-    // printf("Tratando petición desde %s\n", client_ip_local);
+
     
     // Variables para el socket
     char op[MAX_LINE];
@@ -55,15 +57,17 @@ int tratar_petición(void *arg)
     char user2[MAX_LINE];
 
     readLine(sc_local, op, MAX_LINE);
-
     // Leer la cadena de fecha/hora tras el código de operación
     readLine(sc_local, datetime, MAX_LINE);
     // Si quieres, puedes imprimirla:
     // printf("Fecha/hora recibida: %s\n", datetime);
 
+
     readLine(sc_local, user, MAX_LINE);
     printf("s > OPERATION %s FROM %s\n", op, user);
     
+    
+
     if (strcmp(op, "REGISTER") == 0) {
 
         if (exist_user(user) != 0) {
@@ -222,7 +226,37 @@ int tratar_petición(void *arg)
             status = 1;
         }
     }
-    
+    char *host;
+    host = getenv("LOG_RPC_IP");
+    printf("host: %s\n", host);
+    CLIENT *clnt;
+	enum clnt_stat retval_1;
+	int result_1;
+	cadena obtener_tiempo_servidor_1_user = user;
+	cadena obtener_tiempo_servidor_1_op = op;
+    if (strcmp(op, "PUBLISH") == 0 || strcmp(op, "DELETE") == 0){
+        // Crear un buffer temporal para la concatenación
+        char temp_buffer[MAX_LINE * 2]; // Buffer con espacio suficiente
+        strcpy(temp_buffer, op);        // Copiar op al buffer
+        strcat(temp_buffer, " ");       // Agregar espacio
+        strcat(temp_buffer, path);      // Concatenar path al buffer
+        obtener_tiempo_servidor_1_op = temp_buffer; // Asignar el resultado
+    }
+	cadena obtener_tiempo_servidor_1_tiempo = datetime;
+
+
+	clnt = clnt_create (host, OBTENER_TIEMPO, OBTENER_TIEMPO_VERS, "udp");
+	if (clnt == NULL) {
+		clnt_pcreateerror (host);
+		exit (1);
+	}
+
+	retval_1 = obtener_tiempo_servidor_1(obtener_tiempo_servidor_1_user, obtener_tiempo_servidor_1_op, obtener_tiempo_servidor_1_tiempo, &result_1, clnt);
+	if (retval_1 != RPC_SUCCESS) {
+		clnt_perror (clnt, "call failed");
+	}
+
+	// clnt_destroy (clnt);
 
     // Enviar el resultado de la operación al cliente
     status = htonl(status);

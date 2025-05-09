@@ -84,6 +84,7 @@ class client :
 
         # Enviar la fecha/hora tras el código de operación
         datetime_str = get_datetime_string() + "\0"
+        print(datetime_str)
         sock.sendall(datetime_str.encode())
 
         message = user + "\0"
