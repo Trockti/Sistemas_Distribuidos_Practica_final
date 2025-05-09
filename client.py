@@ -1,7 +1,7 @@
 from enum import Enum
 
 import argparse
-
+import requests
 import socket
 import os
 import threading
@@ -14,6 +14,19 @@ service_thread_instance = None
 user_socket = None
 user_connected = ''
 list_users = {}
+
+def get_public_ip():
+    """
+    Obtiene la IP pública del cliente consultando un servicio externo.
+    """
+    try:
+        # Consultar a un servicio que devuelve la IP pública
+        response = requests.get('https://api.ipify.org', timeout=5)
+        return response.text
+    except Exception as e:
+        print(f"Error obteniendo IP pública: {e}")
+        # Devolver IP local si falla la obtención de la IP pública
+        return socket.gethostbyname(socket.gethostname())
 
 def readInt32(sock):
     """
@@ -73,10 +86,11 @@ class client :
             return client.RC.USER_ERROR
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, int(client._port))
+
         try:
             sock.connect(server_address)
         except socket.error as e:
-            print("c > PUBLISH FAIL")
+            print("c > REGISTER FAIL")
             return client.RC.ERROR
 
         message = "REGISTER" + "\0"
@@ -160,15 +174,14 @@ class client :
                 try:
                     sock, addr = user_socket.accept()
                     message = readString(sock)
-                    print(message)
                     if message != 'GET_FILE':
-                        print("ups")
-                        message = struct.pack('!I', 1)
+                        message = struct.pack('!I', 2)
                         sock.sendall(message)
                     else:
                         path = readString(sock)     
                         full_path = os.path.join(os.getcwd(), path)
                         if not os.path.exists(full_path):
+                            print(f"El archivo {full_path} no existe.")
                             message = struct.pack('!I', 1)
                             sock.sendall(message)
                             print(f"Datos recibidos: {full_path.decode()}")
@@ -184,10 +197,8 @@ class client :
                                 with open(full_path, 'rb') as file:                            
                                     # Read the first byte
                                     file = file.read(size)
-                                    print(file.decode())
                                     # Send the file content
                                     sock.sendall(file)
-                                        
                                 
                             except Exception as e:
                                 print(f"Error while sending file: {e}")
@@ -209,7 +220,7 @@ class client :
         try:
             sock.connect(server_address)
         except socket.error as e:
-            print("c > PUBLISH FAIL")
+            print("c > CONNECT FAIL")
             return client.RC.ERROR
 
         message = "CONNECT" + "\0"
@@ -221,6 +232,8 @@ class client :
         message = user + "\0"
         sock.sendall(message.encode())
 
+        message = get_public_ip() + "\0"
+        sock.sendall(message.encode())
         message = struct.pack('!I', port)
         sock.sendall(message)
 
@@ -262,7 +275,7 @@ class client :
         try:
             sock.connect(server_address)
         except socket.error as e:
-            print("c > PUBLISH FAIL")
+            print("c > DISCONNECT FAIL")
             return client.RC.ERROR
 
         message = "DISCONNECT" + "\0"
@@ -345,7 +358,7 @@ class client :
         try:
             sock.connect(server_address)
         except socket.error as e:
-            print("c > “DELETE” FAIL")
+            print("c > DELETE FAIL")
             return client.RC.ERROR
 
         message = "DELETE" + "\0"
@@ -479,9 +492,6 @@ class client :
         message = "GET_FILE" + "\0"
         sock.sendall(message.encode())
 
-        datetime_str = get_datetime_string() + "\0"
-        sock.sendall(datetime_str.encode())
-
         message = remote_FileName + "\0"
         sock.sendall(message.encode())       
         status = int(readInt32(sock))
@@ -513,7 +523,7 @@ class client :
     @staticmethod
     def shell():
 
-        while (True) :
+        while (True):
 
             try :
 
@@ -633,6 +643,12 @@ class client :
 
                         print("Error: command " + line[0] + " not valid.")
 
+            except KeyboardInterrupt:
+                if user_connected:
+                    print()
+                    client.disconnect(user_connected)  # Disconnect the user before quitting
+                break
+                
             except Exception as e:
 
                 print("Exception: " + str(e))

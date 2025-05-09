@@ -50,6 +50,7 @@ int tratar_petición(void *arg)
     char op[MAX_LINE];
     char datetime[MAX_LINE]; // <-- Añadido para la fecha/hora
     char user[MAX_LINE];
+    char client_ip[INET_ADDRSTRLEN];
     int32_t port;
     char path[MAX_LINE];
     char description[MAX_LINE];
@@ -89,6 +90,10 @@ int tratar_petición(void *arg)
         }
     }
     else if(strcmp(op, "CONNECT") == 0){
+        // Leer la IP y el puerto del cliente
+        printf("s > CONNECT %s\n", user);
+        readLine(sc_local, client_ip, MAX_LINE  );
+        printf("IP: %s\n", client_ip);
         recvMessage(sc_local, (char *)&port, sizeof(int32_t));
         port = ntohl(port);
         if (exist_user(user) == 0){
