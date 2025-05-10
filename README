@@ -1,0 +1,8 @@
+Antes de hacer nada, a lo mejor es necesario instalar algunas librerías con los siguientes comandos, en caso de que no funcione el código tras ejecutar los siguientes comandos:
+sudo apt install python3-spyne , sudo apt install python3-zeep y  sudo apt install python3-requests .
+Para la compilación de los ejecutables necesarios, primero de todo, se debe de ejecutar make. Con ello, se generan dos ejecutables, servidor y servidor-rpc. 
+
+Una vez generados los archivos, hay 4 procesos que ejecutar. Para el servidor, primero hay que ejecutar el comando export LOG_RPC_IP=ip, donde ip es la ip que va a usar el servidor rpc. Después, se ejecuta el servidor con ./servidor -p <ip>, donde ip es la ip que va a usar el servidor. Un ejemplo de comando sería ./servidor -p 3000 .
+Para ejecuta el servidor-rpc, se ejecuta el comando: ./servidor-rpc .
+Para el servicio web, primero hay que estar en el directorio src, al cual se cambia con cd src, y posteriormente se ejecuta con python3 datetime_service.py . El servidor web se debe ejecutar junto al cliente, una vez por cliente que esté siendo ejecutado en cada respectivo ordenador.
+Para ejecutar el cliente, hay que ejecutar primero un comando para usar la librería dinámica creada con make: export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:. . Finalmente, para ejecutar el cliente usas  python3 ./ cliente . py -s < server > -p < port >, donde server es la server y port son la ip y puerto que está usando el servidor. El puerto no puede ser 8000 ya que está reservado para el servicio web. Un ejemplo de comando es: python3 client.py -s localhost -p 3000 .

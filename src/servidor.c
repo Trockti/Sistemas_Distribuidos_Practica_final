@@ -1,4 +1,11 @@
 // Inclusión de bibliotecas necesarias
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #include <mqueue.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +57,7 @@ int tratar_petición(void *arg)
     char op[MAX_LINE];
     char datetime[MAX_LINE]; // <-- Añadido para la fecha/hora
     char user[MAX_LINE];
-    char client_ip[INET_ADDRSTRLEN];
+    // char client_ip[INET_ADDRSTRLEN];
     int32_t port;
     char path[MAX_LINE];
     char description[MAX_LINE];
@@ -92,8 +99,8 @@ int tratar_petición(void *arg)
     else if(strcmp(op, "CONNECT") == 0){
         // Leer la IP y el puerto del cliente
         printf("s > CONNECT %s\n", user);
-        readLine(sc_local, client_ip, MAX_LINE  );
-        printf("IP: %s\n", client_ip);
+        // readLine(sc_local, client_ip, MAX_LINE  );
+        // printf("IP: %s\n", client_ip);
         recvMessage(sc_local, (char *)&port, sizeof(int32_t));
         port = ntohl(port);
         if (exist_user(user) == 0){
@@ -437,9 +444,39 @@ int main(int argc, char *argv[])
     sizeof(server_addr));
     
     listen(sd, SOMAXCONN);
+    // Driver code
+    char* get_public_ip(){
+        int fd;
+        struct ifreq ifr;
+        
+        // replace with your interface name
+        // or ask user to input
+        
+        char iface[] = "eth0";
+        
+        fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+        //Type of address to retrieve - IPv4 IP address
+        ifr.ifr_addr.sa_family = AF_INET;
+
+        //Copy the interface name in the ifreq structure
+        strncpy(ifr.ifr_name , iface , IFNAMSIZ-1);
+
+        ioctl(fd, SIOCGIFADDR, &ifr);
+
+        close(fd);
+
+        //display result
+        // printf("%s - %s\n" , iface , inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr) );
+
+
+        return inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr);
+    }
+
+    char* ip_server = get_public_ip();
     size = sizeof(client_addr);
     printf("s > init server %s:%d\n",
-        inet_ntoa(server_addr.sin_addr), ntohs(server_addr.sin_port));
+        ip_server, ntohs(server_addr.sin_port));
 
     // Bucle principal del servidor
     while (1)
