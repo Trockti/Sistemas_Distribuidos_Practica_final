@@ -392,13 +392,62 @@ int get_user_information(char *user, char *ip, int *port) {
     return 0; // Success
 }
 int delete_user(char *user) {
-    char full_path[512]; // Buffer para almacenar la ruta completa
-    snprintf(full_path, sizeof(full_path), "users/%s", user); // Construye la ruta completa
-    if (rmdir(full_path) != 0) {
-        perror("Error al eliminar el directorio");
-        return -1; // Retorna -1 en caso de error
+    DIR *dir;
+    struct dirent *entry;
+    char path[512]; // Buffer para almacenar la ruta completa
+    snprintf(path, sizeof(path), "users/%s", user); // Construye la ruta completa
+    char full_path[1024]; // Buffer para almacenar la ruta completa
+
+    // Abre el directorio
+    dir = opendir(path);
+    if (dir == NULL) {
+        perror("Error al abrir el directorio");
+        return -1;
     }
-    return 0; // Éxito
+
+    // Recorre el contenido del directorio
+    while ((entry = readdir(dir)) != NULL) {
+        // Omite "." y ".."
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Construye la ruta completa
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+        // Obtiene información del archivo
+        struct stat statbuf;
+        if (stat(full_path, &statbuf) == -1) {
+            perror("Error al obtener información del archivo");
+            closedir(dir);
+            return -1;
+        }
+
+        // Si es un directorio, elimina recursivamente
+        if (S_ISDIR(statbuf.st_mode)) {
+            if (delete_directory(full_path) == -1) {
+                closedir(dir);
+                return -1;
+            }
+        } else {
+            // Es un archivo, elimínalo
+            if (remove(full_path) == -1) {
+                perror("Error al eliminar archivo");
+                closedir(dir);
+                return -1;
+            }
+        }
+    }
+
+    closedir(dir);
+
+    // Finalmente, elimina el directorio
+    if (rmdir(path) == -1) {
+        perror("Error al eliminar directorio");
+        return -1;
+    }
+
+    return 0;
 }
 
 int user_connected(char *user){

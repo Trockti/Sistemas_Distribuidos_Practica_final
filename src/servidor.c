@@ -36,6 +36,60 @@ pthread_cond_t sync_cond = PTHREAD_COND_INITIALIZER;
 pthread_attr_t attr_thread;
 int sync_copied = 0;
 
+// Función para listar archivos recursivamente
+int list_files_recursively(int sc_local, const char *base_dir, const char *current_dir) {
+    DIR *dir;
+    struct dirent *entry;
+    char path[MAX_LINE * 2];
+    char relative_path[MAX_LINE * 2];
+    struct stat statbuf;
+
+    // Construir la ruta completa
+    snprintf(path, sizeof(path), "%s/%s", base_dir, current_dir);
+    
+    dir = opendir(path);
+    if (dir == NULL) {
+        perror("Error al abrir directorio");
+        return -1;
+    }
+    
+    while ((entry = readdir(dir)) != NULL) {
+        // Ignorar . y ..
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+        
+        // Construir ruta completa del archivo/directorio actual
+        snprintf(path, sizeof(path), "%s/%s/%s", base_dir, current_dir, entry->d_name);
+        
+        // Construir ruta relativa para enviar al cliente
+        if (strlen(current_dir) > 0) {
+            snprintf(relative_path, sizeof(relative_path), "%s/%s", current_dir, entry->d_name);
+        } else {
+            snprintf(relative_path, sizeof(relative_path), "%s", entry->d_name);
+        }
+        
+        if (stat(path, &statbuf) == -1) {
+            perror("Error obteniendo estado del archivo");
+            continue;
+        }
+        
+        if (S_ISDIR(statbuf.st_mode)) {
+            // Es un directorio, explorar recursivamente
+            list_files_recursively(sc_local, base_dir, relative_path);
+        } else {
+            // Es un archivo, enviarlo al cliente
+            if (sendMessage(sc_local, relative_path, strlen(relative_path) + 1) < 0) {
+                perror("Error enviando archivo");
+                closedir(dir);
+                return -2;
+            }
+        }
+    }
+    
+    closedir(dir);
+    return 0;
+}
+
 // Función que maneja las peticiones de los clientes
 int tratar_petición(void *arg)
 {
@@ -220,9 +274,13 @@ int tratar_petición(void *arg)
             }
             else{
                 if (exist_user(user2) == 0){
-                    count = count_files("users");
+                    // Crear la ruta correctamente usando snprintf
+                    char user_dir[MAX_LINE * 2];
+                    snprintf(user_dir, sizeof(user_dir), "users/%s", user2);
+                    
+                    // Ahora pasar esta ruta a count_files
+                    count = count_files(user_dir);
                     if (count > 0){
-
                         status = 0;
                     }
                     else{
@@ -240,7 +298,6 @@ int tratar_petición(void *arg)
     }
     char *host;
     host = getenv("LOG_RPC_IP");
-    printf("host: %s\n", host);
     CLIENT *clnt;
 	enum clnt_stat retval_1;
 	int result_1;
@@ -337,44 +394,22 @@ int tratar_petición(void *arg)
                 return -2;
             }
             
-            // Buscar archivos en la carpeta connect
-            DIR *dir;
-            struct dirent *entry;
-
+            // Buscar archivos en la carpeta del usuario especificado
+            char user_dir[MAX_LINE * 2];
+            snprintf(user_dir, sizeof(user_dir), "users/%s", user2);
             
-            // Abrir el directorio connect
-            dir = opendir("users");
-            if (dir == NULL) {
-                perror("Error al abrir directorio connect");
+            // Usar la función recursiva para listar archivos
+            if (list_files_recursively(sc_local, "users", user2) < 0) {
+                perror("Error listando archivos recursivamente");
                 return -2;
             }
-            
-            // Leer cada entrada del directorio
-            while ((entry = readdir(dir)) != NULL) {
-                // Ignorar . y ..
-                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                    continue;
-                
-                if (sendMessage(sc_local,entry->d_name, strlen(entry->d_name) + 1) < 0) {
-                        perror("Error enviando archivo");
-                        closedir(dir);
-                        return -2;
-                }
-
-                else {
-                    perror("Error al obtener información del usuario");
-                    closedir(dir);
-                }
-            }
-            
-            // Cerrar el directorio
-            closedir(dir);
         }
     }
 
     close(sc_local);
     return 0;
 }
+
 
 // Función principal
 int main(int argc, char *argv[])

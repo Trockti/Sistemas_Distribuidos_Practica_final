@@ -398,10 +398,10 @@ class client :
             RC.USER_ERROR si los parámetros son inválidos
         """
         if len(fileName) > 255:
-            print("Error: file name is too long")
+            print("c > PUBLISH FAIL")
             return client.RC.USER_ERROR
         if len(description) > 255:
-            print("Error: description is too long")
+            print("c > PUBLISH FAIL")
             return client.RC.USER_ERROR
             
         # Crear socket y conectar al servidor
@@ -603,13 +603,12 @@ class client :
         # Recibir y procesar respuesta del servidor
         status = int(readInt32(sock))
         if status == 0:
-            print("c > LIST_CONTENT FAIL")
+            print("c > LIST_CONTENT OK")
             # Leer el número de archivos
             num_files = int(readInt32(sock))
             for i in range(num_files):
                 # Leer y mostrar el nombre de cada archivo
                 file = readString(sock)
-                file, extension = os.path.splitext(file)
                 print(file)
 
         elif status == 1:
