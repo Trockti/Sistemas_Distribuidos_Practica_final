@@ -131,8 +131,9 @@ int tratar_petición(void *arg)
     
 
     if (strcmp(op, "REGISTER") == 0) {
-
+        // Comprobar si el usuario ya existe
         if (exist_user(user) != 0) {
+            // Crear el usuario
             create_user(user);
             status = 0;
         }
@@ -142,7 +143,9 @@ int tratar_petición(void *arg)
 
     }
     else if (strcmp(op, "UNREGISTER") == 0) {
+        // Comprobar si el usuario existe
         if (exist_user(user) == 0) {
+            // Eliminar el usuario
             delete_user(user);
             status = 0;
         }
@@ -157,11 +160,14 @@ int tratar_petición(void *arg)
         // printf("IP: %s\n", client_ip);
         recvMessage(sc_local, (char *)&port, sizeof(int32_t));
         port = ntohl(port);
+        // Comprobar si el usuario ya existe
         if (exist_user(user) == 0){
+            // Comprobar si el usuario ya está conectado
             if (user_connected(user) == 0){
                 status = 2;
             }
             else{
+                // Conectar al usuario
                 if (connect_user(user, client_ip_local, port) == 0){
                     status = 0;
                 }
@@ -175,11 +181,14 @@ int tratar_petición(void *arg)
         }
     }
     else if (strcmp(op, "DISCONNECT") == 0){
+        // Comprobar si el usuario existe
         if (exist_user(user) == 0){
+            // Comprobar si el usuario está conectado
             if (user_connected(user) != 0){
                 status = 2;
             }
             else{
+                // Desconectar al usuario
                 if (disconnect_user(user) == 0){
                     status = 0;
                 }
@@ -194,14 +203,19 @@ int tratar_petición(void *arg)
     }
 
     else if (strcmp(op, "PUBLISH") == 0){
+        // Leer la ruta y la descripción del contenido
         readLine(sc_local, path, MAX_LINE);
         readLine(sc_local, description, MAX_LINE);
+        // Comprobar si el usuario existe
         if (exist_user(user) == 0){
+            // Comprobar si el usuario está conectado
             if (user_connected(user) != 0){
                 status = 2;
             }
             else{
+                // Comprobar si el contenido ya existe
                 if (exist_content(user, path) != 0){
+                    // Crear el contenido
                     if (create_content(path, user) == 0){
                         status = 0;
                     }
@@ -220,13 +234,18 @@ int tratar_petición(void *arg)
     }
 
     else if (strcmp(op, "DELETE") == 0){
+        // Leer la ruta del contenido
         readLine(sc_local, path, MAX_LINE);
+        // Comprobar si el usuario existe
         if (exist_user(user) == 0){
+            // Comprobar si el usuario está conectado
             if (user_connected(user) != 0){
                 status = 2;
             }
             else{
+                // Comprobar si el contenido existe
                 if (exist_content(path, user) == 0){
+                    // Eliminar el contenido
                     if (delete_content(path, user) == 0){
                         status = 0;
                     }
@@ -244,12 +263,14 @@ int tratar_petición(void *arg)
         }
     }
     else if (strcmp(op, "LIST_USERS") == 0){
+        // Comprobar si el usuario existe
         if (exist_user(user) == 0){
-            
+            // Comprobar si el usuario está conectado
             if (user_connected(user) != 0){
                 status = 2;
             }
             else{
+                // Contar archivos en la carpeta connect
                 count = count_files("connect");
                 if (count > 0){
 
@@ -266,19 +287,22 @@ int tratar_petición(void *arg)
     }
 
     else if (strcmp(op, "LIST_CONTENT") == 0){
+        // Leer el nombre del usuario
         readLine(sc_local, user2, MAX_LINE);
+        // Comprobar si el usuario existe
         if (exist_user(user) == 0){
-            
+            // Comprobar si el usuario está conectado
             if (user_connected(user) != 0){
                 status = 2;
             }
             else{
+                // Comprobar si el usuario existe
                 if (exist_user(user2) == 0){
                     // Crear la ruta correctamente usando snprintf
                     char user_dir[MAX_LINE * 2];
                     snprintf(user_dir, sizeof(user_dir), "users/%s", user2);
                     
-                    // Ahora pasar esta ruta a count_files
+                    // Contar archivos en la carpeta del usuario
                     count = count_files(user_dir);
                     if (count > 0){
                         status = 0;
@@ -296,6 +320,7 @@ int tratar_petición(void *arg)
             status = 1;
         }
     }
+    // Realizar conexión  con servidor RPC
     char *host;
     host = getenv("LOG_RPC_IP");
     CLIENT *clnt;
@@ -313,18 +338,18 @@ int tratar_petición(void *arg)
     }
 	cadena obtener_tiempo_servidor_1_tiempo = datetime;
 
-
+    // Crear el cliente RPC
 	clnt = clnt_create (host, OBTENER_TIEMPO, OBTENER_TIEMPO_VERS, "udp");
 	if (clnt == NULL) {
 		clnt_pcreateerror (host);
 		exit (1);
 	}
-
+    // Llamar a la función remota
 	retval_1 = obtener_tiempo_servidor_1(obtener_tiempo_servidor_1_user, obtener_tiempo_servidor_1_op, obtener_tiempo_servidor_1_tiempo, &result_1, clnt);
 	if (retval_1 != RPC_SUCCESS) {
 		clnt_perror (clnt, "call failed");
 	}
-
+    
 	clnt_destroy (clnt);
 
     // Enviar el resultado de la operación al cliente
@@ -336,6 +361,7 @@ int tratar_petición(void *arg)
     if (status == 0){
         if (strcmp(op, "LIST_USERS") == 0){
             count = htonl(count);
+            // Enviar el número de usuarios conectados
             if (sendMessage(sc_local, (char *)&count, sizeof(int32_t)) < 0) {
                 perror("Error enviando mensaje de respuesta");
                 return -2;

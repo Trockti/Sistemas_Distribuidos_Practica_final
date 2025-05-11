@@ -15,6 +15,7 @@ service_thread_instance = None  # Instancia del hilo de servicio
 user_socket = None              # Socket para recepción de solicitudes de otros clientes
 user_connected = ''             # Usuario actualmente conectado
 list_users = {}                 # Diccionario para almacenar información de otros usuarios
+show_users = True           # Bandera para mostrar usuarios conectados
 
 def get_public_ip():
     """
@@ -541,7 +542,8 @@ class client :
         # Recibir y procesar respuesta del servidor
         status = int(readInt32(sock))
         if status == 0:
-            print("c > LIST_USERS OK")
+            if show_users:
+                print("c > LIST_USERS OK")
             # Leer el número de usuarios
             num_users = int(readInt32(sock))
             for i in range(num_users):
@@ -552,7 +554,8 @@ class client :
                 port = int(readInt32(sock))
                 # Almacenar información en el diccionario global
                 list_users[user] = [ip, port]
-                print(f"{user} {ip} {port}")
+                if show_users:
+                    print(f"{user} {ip} {port}")
 
         elif status == 1:
             print("c > LIST_USERS FAIL , USER DOES NOT EXIST")
@@ -636,8 +639,19 @@ class client :
             RC.OK si la descarga fue exitosa
             RC.ERROR en caso de error
         """
+        global show_users
+        # Guardar el valor actual de show_users
+        original_show_users = show_users
+        
+        # Desactivar la visualización de usuarios durante listusers()
+        show_users = False
+        
         # Actualizar lista de usuarios conectados para obtener IP y puerto
         client.listusers()
+        
+        # Restaurar el valor original de show_users
+        show_users = original_show_users
+        
         ip = list_users[user][0]
         port = list_users[user][1]
 
